@@ -2,11 +2,14 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://mohadesemrz.github.io/youtube-invidious",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "predeploy" : "npm run build",
+"deploy" : "gh-pages -d build"
   },
   "dependencies": {
     "next": "16.2.4",
@@ -20,6 +23,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "gh-pages": "^6.3.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
