@@ -1,65 +1,184 @@
-import Image from "next/image";
+// app/components/YoutubePlayer.tsx
+'use client';
 
-export default function Home() {
+import { useEffect, useState, useRef } from 'react';
+
+// تعریف تایپ برای YouTube Player
+interface YouTubePlayer {
+  loadVideoById(videoId: string): void;
+  destroy(): void;
+}
+
+// تعریف تایپ برای YT object موجود در window
+interface YTWindow extends Window {
+  YT: {
+    Player: new (
+      elementId: string,
+      options: {
+        height: string;
+        width: string;
+        videoId: string;
+        events: {
+          onReady: (event: { target: YouTubePlayer }) => void;
+        };
+      }
+    ) => YouTubePlayer;
+    PlayerState?: {
+      ENDED: number;
+      PLAYING: number;
+      PAUSED: number;
+      BUFFERING: number;
+      CUED: number;
+    };
+  };
+  onYouTubeIframeAPIReady?: () => void;
+}
+
+export default function YoutubePlayer() {
+  const [player, setPlayer] = useState<YouTubePlayer | null>(null);
+  const [videoId, setVideoId] = useState<string>('');
+  const [isApiLoaded, setIsApiLoaded] = useState<boolean>(false);
+  const playerRef = useRef<YouTubePlayer | null>(null);
+
+  useEffect(() => {
+    // بررسی اینکه آیا API قبلاً لود شده
+    if (typeof window !== 'undefined' && (window as unknown as YTWindow).YT) {
+      initializePlayer();
+      return;
+    }
+
+    // بارگذاری API یوتیوب
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    tag.async = true;
+    
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    // تعریف تابع global برای زمان آماده شدن API
+    (window as unknown as YTWindow).onYouTubeIframeAPIReady = () => {
+      setIsApiLoaded(true);
+      initializePlayer();
+    };
+
+    return () => {
+      // پاکسازی پلیر هنگام unmount
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+      // پاک کردن تابع global
+      delete (window as unknown as YTWindow).onYouTubeIframeAPIReady;
+    };
+  }, []);
+
+  const initializePlayer = () => {
+    const yt = (window as unknown as YTWindow).YT;
+    if (!yt || !yt.Player) {
+      console.error('YouTube API not loaded');
+      return;
+    }
+
+    const playerElement = document.getElementById('youtube-player');
+    if (!playerElement) return;
+
+    try {
+      const newPlayer = new yt.Player('youtube-player', {
+        height: '390',
+        width: '640',
+        videoId: 'dQw4w9WgXcQ',
+        events: {
+          onReady: (event) => {
+            console.log('Player ready');
+            playerRef.current = event.target;
+            setPlayer(event.target);
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error initializing YouTube player:', error);
+    }
+  };
+
+  const playVideo = () => {
+    if (playerRef.current && videoId.trim() !== '') {
+      playerRef.current.loadVideoById(videoId);
+    } else if (!playerRef.current) {
+      console.warn('Player not initialized yet');
+    } else if (videoId.trim() === '') {
+      console.warn('Please enter a video ID');
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      playVideo();
+    }
+  };
+
+  // مثال از videoId های معروف یوتیوب
+  const exampleVideoIds = [
+    { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up' },
+    { id: '9bZkp7q19f0', title: 'PSY - GANGNAM STYLE' },
+    { id: '3JZ_D3ELwOQ', title: 'Baby Shark Dance' },
+  ];
+
+  const loadExampleVideo = (id: string) => {
+    setVideoId(id);
+    if (playerRef.current) {
+      playerRef.current.loadVideoById(id);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="p-4 max-w-4xl mx-auto">
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div 
+          id="youtube-player" 
+          className="w-full aspect-video bg-black"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </div>
+      
+      <div className="mt-6 space-y-4">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={videoId}
+            onChange={(e) => setVideoId(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="آیدی ویدیو یوتیوب را وارد کنید (مثال: dQw4w9WgXcQ)"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            dir="ltr"
+          />
+          <button 
+            onClick={playVideo}
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
+            disabled={!videoId.trim()}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            پخش ویدیو
+          </button>
         </div>
-      </main>
+
+        <div className="text-sm text-gray-600">
+          <p className="mb-2">🎬 مثال‌ها:</p>
+          <div className="flex flex-wrap gap-2">
+            {exampleVideoIds.map((example) => (
+              <button
+                key={example.id}
+                onClick={() => loadExampleVideo(example.id)}
+                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-xs transition-colors"
+              >
+                {example.title.length > 30 ? example.title.substring(0, 30) + '...' : example.title}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {!isApiLoaded && (
+          <div className="text-center text-gray-500 text-sm">
+            در حال بارگذاری پلیر یوتیوب...
+          </div>
+        )}
+      </div>
     </div>
   );
 }
