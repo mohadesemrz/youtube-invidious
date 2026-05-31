@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
 
   try {
     // استفاده از API جایگزین
-    const apiUrl = `https://pipedapi.kavin.rocks/streams/${videoId}`;
-    
+   const apiUrl = `https://yewtu.be/api/v1/videos/${videoId}`;
+
     const response = await fetch(apiUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
