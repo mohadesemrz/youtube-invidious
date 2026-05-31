@@ -1,7 +1,7 @@
 // app/page.tsx
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
 import { YouTubeSearchItem } from '@/types/youtube';
 
 export default function Home() {
@@ -9,6 +9,7 @@ export default function Home() {
   const [videos, setVideos] = useState<YouTubeSearchItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [selectedVideo, setSelectedVideo] = useState<YouTubeSearchItem | null>(null);
 
   const searchVideos = async () => {
     if (!query.trim()) return;
@@ -25,29 +26,35 @@ export default function Home() {
       } else {
         setVideos(data.items || []);
       }
-    } catch (err) {
+    } catch {
       setError('خطا در ارتباط با سرور');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ تابع باز کردن ویدیو در صفحه جدید
-  const openVideo = (videoId: string) => {
-    window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+  // ✅ باز کردن پلیر
+  const playVideo = (video: YouTubeSearchItem) => {
+    setSelectedVideo(video);
+  };
+
+  // ✅ بستن پلیر
+  const closePlayer = () => {
+    setSelectedVideo(null);
   };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '20px' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px' }}>
       <h1 style={{ textAlign: 'center', color: '#ff0000' }}>🎬 جستجوی یوتیوب</h1>
 
+      {/* باکس جستجو */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && searchVideos()}
-          placeholder="جستجو..."
+          placeholder="عبارت جستجو..."
           style={{
             flex: 1,
             padding: '12px',
@@ -78,11 +85,12 @@ export default function Home() {
         </div>
       )}
 
+      {/* لیست ویدیوها */}
       <div>
         {videos.map((video) => (
           <div
             key={video.id.videoId}
-            onClick={() => openVideo(video.id.videoId)}  // ✅ کلیک = باز شدن ویدیو
+            onClick={() => playVideo(video)}
             style={{
               display: 'flex',
               gap: '16px',
@@ -106,6 +114,73 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {/* ✅ پلیر ویدیو (Modal) - بدون هدایت به یوتیوب */}
+      {selectedVideo && (
+        <div
+          onClick={closePlayer}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.95)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#000',
+              borderRadius: '16px',
+              padding: '20px',
+              maxWidth: '90%',
+              maxHeight: '90%',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+              <button
+                onClick={closePlayer}
+                style={{
+                  background: '#ff0000',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                }}
+              >
+                ✕ بستن
+              </button>
+            </div>
+            
+            {/* ✅ iframe یوتیوب - ویدیو در همین صفحه پخش می‌شود */}
+            <iframe
+              width="900"
+              height="506"
+              src={`https://www.youtube.com/embed/${selectedVideo.id.videoId}?autoplay=1&rel=0&modestbranding=1`}
+              title={selectedVideo.snippet.title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              style={{ borderRadius: '12px' }}
+            />
+            
+            <div style={{ color: 'white', marginTop: '15px', padding: '0 10px' }}>
+              <h3 style={{ margin: '0 0 5px 0' }}>{selectedVideo.snippet.title}</h3>
+              <p style={{ margin: '0', color: '#ccc', fontSize: '14px' }}>
+                {selectedVideo.snippet.channelTitle}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
