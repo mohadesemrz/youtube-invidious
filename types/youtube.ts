@@ -56,3 +56,19 @@ export interface VideoCardProps {
   video: YouTubeSearchItem;
   onClick: (videoId: string) => void;
 }
+// types/youtube.ts
+// ... تایپ‌های قبلی ...
+
+export interface DownloadQuality {
+  label: string;
+  value: string;
+}
+
+export const QUALITIES: DownloadQuality[] = [
+  { label: '144p', value: '144p' },
+  { label: '240p', value: '240p' },
+  { label: '360p', value: '360p' },
+  { label: '480p', value: '480p' },
+  { label: '720p', value: '720p' },
+  { label: '1080p', value: '1080p' },
+];
